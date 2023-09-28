@@ -1,26 +1,14 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
-    // Adjustable movement speed
-    [SerializeField] private float movementSpeed = 5.0f;
+    [SerializeField] private float moveSpeed = 5f;
+    [SerializeField] private float jumpForce = 5f;
+    [SerializeField] private float gravity = 9.81f;
 
-    // Adjustable jump height (force)
-    [SerializeField] private float jumpForce = 8.0f;
-
-    // CharacterController component reference
     private CharacterController controller;
-
-    // Gravity value
-    private float gravity = 9.81f;
-
-    // Vertical movement velocity
-    private float verticalVelocity = 0.0f;
-
-    // Grounded check
-    private bool isGrounded;
+    private Vector3 moveDirection;
+    private bool isJumping;
 
     private void Start()
     {
@@ -29,38 +17,34 @@ public class PlayerController : MonoBehaviour
 
     private void Update()
     {
-        // Check if the character is grounded
-        isGrounded = controller.isGrounded;
+        float horizontalInput = Input.GetAxis("Horizontal");
+        float verticalInput = Input.GetAxis("Vertical");
 
-        if (isGrounded)
+        // Calculate the movement direction
+        Vector3 horizontalMovement = transform.right * horizontalInput;
+        Vector3 verticalMovement = transform.forward * verticalInput;
+        moveDirection = (horizontalMovement + verticalMovement).normalized * moveSpeed;
+
+        // Check for jumping input
+        if (Input.GetButtonDown("Jump") && controller.isGrounded)
         {
-            // Calculate movement direction
-            Vector3 moveDirection = new Vector3(Input.GetAxis("Horizontal"), 0.0f, Input.GetAxis("Vertical"));
-            moveDirection = transform.TransformDirection(moveDirection);
-
-            // Apply movement speed
-            moveDirection *= movementSpeed;
-
-            // Handle jumping
-            if (Input.GetButtonDown("Jump"))
-            {
-                verticalVelocity = jumpForce;
-            }
+            isJumping = true;
         }
 
-        // Apply gravity to the vertical velocity
-        verticalVelocity -= gravity * Time.deltaTime;
-
-        // Ensure that the character doesn't continue moving upwards if not grounded
-        if (!isGrounded)
+        // Apply gravity
+        if (!controller.isGrounded)
         {
-            verticalVelocity = Mathf.Max(verticalVelocity, -gravity);
+            moveDirection.y -= gravity * Time.deltaTime;
         }
 
-        // Update the character's vertical velocity
-        Vector3 verticalMovement = new Vector3(0, verticalVelocity, 0);
+        // Apply jump
+        if (isJumping)
+        {
+            moveDirection.y = jumpForce;
+            isJumping = false;
+        }
 
-        // Move the character
-        controller.Move((moveDirection + verticalMovement) * Time.deltaTime);
+        // Move the player
+        controller.Move(moveDirection * Time.deltaTime);
     }
 }
